@@ -42,7 +42,8 @@ dependencies {
     implementation "io.ktor:ktor-utils:$ktor_version"
     implementation "io.ktor:ktor:$ktor_version"
     implementation "io.ktor:ktor-jackson:$ktor_version"
-
+    implementation "io.ktor:ktor-server-sessions:$ktor_version"
+    implementation "redis.clients:jedis:$jedis_version"
     implementation "ch.qos.logback:logback-classic:$logback_version"
 
     testImplementation "io.mockk:mockk:$mockk_version"
