@@ -12,3 +12,18 @@ cd /tmp && java -jar ~/javaWorkspace/ktor-sandbox/build/libs/ktor-sandbox.jar
 ```
 curl -i -X POST -H "Accept: application/json" 'http://localhost:8098/customer'
 ```
+
+# Logging in
+```
+curl -i -X GET 'http://localhost:8098/login'
+```
+
+# Getting session info
+```
+curl -i -X GET -H 'Cookie: user_session=48377d001c21a99547290c00395dd461' 'http://localhost:8098/session'
+```
+
+# Logout
+```
+curl -i -X GET -H 'Cookie: user_session=48377d001c21a99547290c00395dd461' 'http://localhost:8098/logout'
+```
