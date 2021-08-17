@@ -67,19 +67,26 @@ class RedisSessionStorage : SimplifiedSessionStorage {
     constructor() {
         val jedisPoolConfig: GenericObjectPoolConfig<Jedis> = GenericObjectPoolConfig<Jedis>()
         // TODO timeouts
+        // TODO close pool
         jedisPool = JedisPool(jedisPoolConfig, "localhost", 36379)
     }
 
     override suspend fun read(id: String): String? {
-        return jedisPool.resource.get(id)
+        jedisPool.resource.use {
+            return it.get(id)
+        }
     }
 
     override suspend fun write(id: String, data: String?) {
-        jedisPool.resource.set(id, data)
+        jedisPool.resource.use {
+            it.set(id, data)
+        }
     }
 
     override suspend fun invalidate(id: String) {
-        jedisPool.resource.del(id)
+        jedisPool.resource.use {
+            it.del(id)
+        }
     }
 }
 
