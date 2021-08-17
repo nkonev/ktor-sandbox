@@ -33,10 +33,6 @@ abstract class SimplifiedSessionStorage : SessionStorage {
     abstract suspend fun read(id: String): String?
     abstract suspend fun write(id: String, data: String?): Unit
 
-    override suspend fun invalidate(id: String) {
-        write(id, null)
-    }
-
     override suspend fun <R> read(id: String, consumer: suspend (ByteReadChannel) -> R): R {
         val data = read(id) ?: throw NoSuchElementException("Session $id not found")
         return consumer(ByteReadChannel(data))
