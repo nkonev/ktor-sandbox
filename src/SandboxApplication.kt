@@ -1,5 +1,7 @@
 package io.ktor.samples.sandbox
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.KotlinModule
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.http.*
@@ -79,10 +81,21 @@ class RedisSessionStorage : SimplifiedSessionStorage {
     override suspend fun invalidate(id: String) {
         jedisPool.resource.del(id)
     }
-
-
 }
 
+
+class JacksonSerializer<T>(
+    private val type: Class<T>
+): SessionSerializer<T> {
+    private val jackson = ObjectMapper().registerModule(KotlinModule())
+    override fun deserialize(text: String): T {
+        return jackson.readValue(text, type) as T
+    }
+
+    override fun serialize(session: T): String {
+        return jackson.writeValueAsString(session)
+    }
+}
 
 /**
  * Module that just registers the root path / and replies with a text.
@@ -92,7 +105,9 @@ fun Application.module() {
         jackson()
     }
     install(Sessions) {
-        cookie<UserSession>("user_session", storage = RedisSessionStorage())
+        cookie<UserSession>("user_session", storage = RedisSessionStorage()) {
+            serializer = JacksonSerializer(UserSession::class.java)
+        }
     }
     routing {
         get("/") {
