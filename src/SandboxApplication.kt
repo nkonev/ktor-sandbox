@@ -10,8 +10,10 @@ import io.ktor.sessions.*
 import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.coroutineContext
 
@@ -58,22 +60,24 @@ suspend fun ByteReadChannel.readAvailable(): String {
 
 class RedisSessionStorage : SimplifiedSessionStorage {
 
-    private val jedis: Jedis
+    private val jedisPool: JedisPool
 
     constructor() {
-        jedis = Jedis(HostAndPort("localhost", 36379))
+        val jedisPoolConfig: GenericObjectPoolConfig<Jedis> = GenericObjectPoolConfig<Jedis>()
+        // TODO timeouts
+        jedisPool = JedisPool(jedisPoolConfig, "localhost", 36379)
     }
 
     override suspend fun read(id: String): String? {
-        return jedis.get(id)
+        return jedisPool.resource.get(id)
     }
 
     override suspend fun write(id: String, data: String?) {
-        jedis.set(id, data)
+        jedisPool.resource.set(id, data)
     }
 
     override suspend fun invalidate(id: String) {
-        jedis.del(id)
+        jedisPool.resource.del(id)
     }
 
 
