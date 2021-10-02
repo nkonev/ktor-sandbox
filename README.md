@@ -27,3 +27,8 @@ curl -i -X GET -H 'Cookie: user_session=48377d001c21a99547290c00395dd461' 'http:
 ```
 curl -i -X GET -H 'Cookie: user_session=48377d001c21a99547290c00395dd461' 'http://localhost:8098/logout'
 ```
+
+# Open Mongo
+```
+docker exec -it ktor-sandbox_mongo_1 mongosh
+```
