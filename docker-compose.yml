@@ -1,0 +1,25 @@
+# This file used for both developer and demo purposes.
+# It contains environment
+version: '3.7'
+
+services:
+  mongo:
+    image: mongo:5.0.3-focal
+    restart: unless-stopped
+    ports:
+      - 27027:27017
+    volumes:
+      - mongo_data_dir:/data/db
+
+  redis:
+    image: redis:6.2.5-buster
+    hostname: redis
+    restart: unless-stopped
+    ports:
+      - 37779:6379
+    volumes:
+      - redis_data_dir:/data
+
+volumes:
+  mongo_data_dir:
+  redis_data_dir:

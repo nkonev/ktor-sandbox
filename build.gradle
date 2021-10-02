@@ -46,6 +46,7 @@ dependencies {
     implementation "redis.clients:jedis:$jedis_version"
     implementation "ch.qos.logback:logback-classic:$logback_version"
     implementation 'org.kodein.di:kodein-di-framework-ktor-server-jvm:7.8.0'
+    implementation 'org.litote.kmongo:kmongo:4.3.0'
     testImplementation "io.mockk:mockk:$mockk_version"
 }
 
