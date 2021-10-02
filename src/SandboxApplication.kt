@@ -122,6 +122,8 @@ data class Jedi(val name: String, val age: Int)
  * Module that just registers the root path / and replies with a text.
  */
 fun Application.module() {
+    val env = environment.config.propertyOrNull("ktor.custom")?.getString()
+    log.info("Got custom variable $env")
     install(DIFeature) {
         bind<Random> { singleton { SecureRandom() } }
 
