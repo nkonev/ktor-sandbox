@@ -144,6 +144,8 @@ fun Application.module() {
 
     // can use kodein here
     routing {
+        val collection by closestDI().instance<MongoCollection<Jedi>>()
+
         get("/") {
             call.respondText("Hello World!")
         }
@@ -171,11 +173,20 @@ fun Application.module() {
             val random by closestDI().instance<Random>()
             call.respond(random.nextInt())
         }
+
         post("/mongo") {
-            val collection by closestDI().instance<MongoCollection<Jedi>>()
             log.info("Got mongo collection $collection")
             collection.insertOne(Jedi("Luke Skywalker", 19))
+            call.respond(HttpStatusCode.OK)
         }
 
+        get("/mongo") {
+            val yoda : Jedi? = collection.findOne(Jedi::name eq "Luke Skywalker")
+            if (yoda == null) {
+                call.respond(HttpStatusCode.Gone)
+            } else {
+                call.respond(yoda)
+            }
+        }
     }
 }
