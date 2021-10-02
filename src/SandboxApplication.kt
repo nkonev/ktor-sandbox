@@ -13,7 +13,6 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
-import redis.clients.jedis.HostAndPort
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import java.io.ByteArrayOutputStream
