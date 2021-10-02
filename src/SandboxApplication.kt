@@ -13,12 +13,19 @@ import io.ktor.utils.io.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig
+import org.kodein.di.bind
+import org.kodein.di.instance
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import java.io.ByteArrayOutputStream
 import kotlin.coroutines.coroutineContext
-import org.kodein.di.*
-import org.kodein.di.generic.*
+import org.kodein.di.ktor.DIFeature
+import org.kodein.di.ktor.closestDI
+import org.kodein.di.ktor.di
+import org.kodein.di.singleton
+import java.security.SecureRandom
+import java.util.*
+import kotlin.NoSuchElementException
 
 /**
  * Main entrypoint of the executable that starts a Netty webserver at port 8080
@@ -108,43 +115,20 @@ class JacksonSerializer<T>(
  * Module that just registers the root path / and replies with a text.
  */
 fun Application.module() {
-//    install(KodeinFeature) {
-//
-//    }
-    kodeinApplication {
-        application ->
-            application.apply {
-                // This adds automatically Date and Server headers to each response, and would allow you to configure
-                // additional headers served to each response.
-                install(DefaultHeaders)
-
-                install(ContentNegotiation) {
-                    jackson()
-                }
-                install(Sessions) {
-                    cookie<UserSession>("user_session", storage = RedisSessionStorage()) {
-                        serializer = JacksonSerializer(UserSession::class.java)
-                    }
-                }
-        }
+    install(DIFeature) {
+        bind<Random> { singleton { SecureRandom() } }
     }
-}
+    // This adds automatically Date and Server headers to each response, and would allow you to configure
+    // additional headers served to each response.
+    install(DefaultHeaders)
 
-fun Application.kodeinApplication(
-    kodeinMapper: Kodein.MainBuilder.(Application) -> Unit = {}
-) {
-    val application = this
-
-    // Allows to use classes annotated with @Location to represent URLs.
-    // They are typed, can be constructed to generate URLs, and can be used to register routes.
-
-    /**
-     * Creates a [Kodein] instance, binding the [Application] instance.
-     * Also calls the [kodeInMapper] to map the Controller dependencies.
-     */
-    val kodein = Kodein {
-        bind<Application>() with instance(application)
-        kodeinMapper(this, application)
+    install(ContentNegotiation) {
+        jackson()
+    }
+    install(Sessions) {
+        cookie<UserSession>("user_session", storage = RedisSessionStorage()) {
+            serializer = JacksonSerializer(UserSession::class.java)
+        }
     }
 
     // can use kodein here
@@ -171,6 +155,11 @@ fun Application.kodeinApplication(
             call.sessions.clear<UserSession>()
             call.respondRedirect("/")
         }
-    }
 
+        get("/random") {
+            val random by closestDI().instance<Random>()
+            call.respond(random.nextInt())
+        }
+
+    }
 }
