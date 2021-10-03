@@ -1,7 +1,5 @@
 package io.ktor.samples.sandbox
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.KotlinModule
 import com.mongodb.client.MongoClient
 import com.mongodb.client.MongoCollection
 import com.mongodb.client.MongoDatabase
@@ -12,24 +10,14 @@ import io.ktor.jackson.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
-import io.ktor.utils.io.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import org.apache.commons.pool2.impl.GenericObjectPoolConfig
 import org.kodein.di.bind
 import org.kodein.di.instance
-import redis.clients.jedis.Jedis
-import redis.clients.jedis.JedisPool
-import java.io.ByteArrayOutputStream
-import kotlin.coroutines.coroutineContext
 import org.kodein.di.ktor.DIFeature
 import org.kodein.di.ktor.closestDI
-import org.kodein.di.ktor.di
 import org.kodein.di.singleton
 import org.litote.kmongo.KMongo
 import java.security.SecureRandom
 import java.util.*
-import kotlin.NoSuchElementException
 import org.litote.kmongo.* //NEEDED! import KMongo extensions
 
 /**
@@ -44,77 +32,6 @@ fun main(args: Array<String>): Unit = io.ktor.server.cio.EngineMain.main(args)
 data class Customer(val id: Int, val firstName: String, val lastName: String)
 
 data class UserSession(val id: String, val count: Int)
-
-abstract class SimplifiedSessionStorage : SessionStorage {
-    abstract suspend fun read(id: String): String?
-    abstract suspend fun write(id: String, data: String?): Unit
-
-    override suspend fun <R> read(id: String, consumer: suspend (ByteReadChannel) -> R): R {
-        val data = read(id) ?: throw NoSuchElementException("Session $id not found")
-        return consumer(ByteReadChannel(data))
-    }
-
-    override suspend fun write(id: String, provider: suspend (ByteWriteChannel) -> Unit) {
-        return provider(CoroutineScope(Dispatchers.IO).reader(coroutineContext, autoFlush = true) {
-            write(id, channel.readAvailable())
-        }.channel)
-    }
-}
-
-suspend fun ByteReadChannel.readAvailable(): String {
-    val data = ByteArrayOutputStream()
-    val temp = ByteArray(1024)
-    while (!isClosedForRead) {
-        val read = readAvailable(temp)
-        if (read <= 0) break
-        data.write(temp, 0, read)
-    }
-    return String(data.toByteArray())
-}
-
-class RedisSessionStorage : SimplifiedSessionStorage {
-
-    private val jedisPool: JedisPool
-
-    constructor() {
-        val jedisPoolConfig: GenericObjectPoolConfig<Jedis> = GenericObjectPoolConfig<Jedis>()
-        // TODO timeouts
-        // TODO close pool
-        jedisPool = JedisPool(jedisPoolConfig, "localhost", 37779)
-    }
-
-    override suspend fun read(id: String): String? {
-        jedisPool.resource.use {
-            return it.get(id)
-        }
-    }
-
-    override suspend fun write(id: String, data: String?) {
-        jedisPool.resource.use {
-            it.set(id, data)
-        }
-    }
-
-    override suspend fun invalidate(id: String) {
-        jedisPool.resource.use {
-            it.del(id)
-        }
-    }
-}
-
-
-class JacksonSerializer<T>(
-    private val type: Class<T>
-): SessionSerializer<T> {
-    private val jackson = ObjectMapper().registerModule(KotlinModule())
-    override fun deserialize(text: String): T {
-        return jackson.readValue(text, type) as T
-    }
-
-    override fun serialize(session: T): String {
-        return jackson.writeValueAsString(session)
-    }
-}
 
 data class Jedi(val name: String, val age: Int)
 
