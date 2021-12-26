@@ -32,3 +32,8 @@ curl -i -X GET -H 'Cookie: user_session=48377d001c21a99547290c00395dd461' 'http:
 ```
 docker exec -it ktor-sandbox_mongo_1 mongosh
 ```
+
+# Stopping
+```
+kill -2 $(ps -ef | grep SandboxApplication | grep -v 'grep' | awk '{print $2}')
+```

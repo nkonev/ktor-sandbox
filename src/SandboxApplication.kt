@@ -10,15 +10,17 @@ import io.ktor.jackson.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.sessions.*
-import org.kodein.di.bind
-import org.kodein.di.instance
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig
+import org.kodein.di.*
+import org.kodein.di.bindings.*
 import org.kodein.di.ktor.DIFeature
 import org.kodein.di.ktor.closestDI
-import org.kodein.di.singleton
 import org.litote.kmongo.KMongo
 import java.security.SecureRandom
 import java.util.*
 import org.litote.kmongo.* //NEEDED! import KMongo extensions
+import redis.clients.jedis.Jedis
+import redis.clients.jedis.JedisPool
 
 /**
  * Main entrypoint of the executable that starts a Netty webserver at port 8080
@@ -42,12 +44,37 @@ fun Application.module() {
     val env = environment.config.propertyOrNull("ktor.custom")?.getString()
     log.info("Got custom variable $env")
     install(DIFeature) {
+        val cleseableScope = scope as NoScope
+        bind<NoScope> { singleton { cleseableScope } }
+
         bind<Random> { singleton { SecureRandom() } }
 
         bind<MongoClient> { singleton { KMongo.createClient("mongodb://localhost:27027") }}
         bind<MongoDatabase> { singleton { this.instance<MongoClient>().getDatabase("test") } }
         bind<MongoCollection<Jedi>> { singleton { this.instance<MongoDatabase>().getCollection<Jedi>() } }
+        bind<JedisPool> { scoped(cleseableScope).singleton {
+            val jedisPoolConfig: GenericObjectPoolConfig<Jedis> = GenericObjectPoolConfig<Jedis>()
+            // TODO timeouts
+
+            log.info("Configuring redis pool")
+            val closeLoggingPool = object : JedisPool(jedisPoolConfig, "localhost", 36379), ScopeCloseable {
+                override fun close() {
+                    log.info("Closing redis pool")
+                    super.close()
+                }
+            }
+
+            return@singleton closeLoggingPool
+        } }
     }
+
+    environment.monitor.subscribe(ApplicationStopping) {
+        log.info("Application is stopping")
+        val instance by closestDI().instance<NoScope>()
+        val standardScopeRegistry = instance.getRegistry(null)
+        standardScopeRegistry.close()
+    }
+
     // This adds automatically Date and Server headers to each response, and would allow you to configure
     // additional headers served to each response.
     install(DefaultHeaders)
@@ -56,7 +83,9 @@ fun Application.module() {
         jackson()
     }
     install(Sessions) {
-        cookie<UserSession>("user_session", storage = RedisSessionStorage()) {
+        val redisPool by closestDI().on(Any()).instance<JedisPool>()
+
+        cookie<UserSession>("user_session", storage = RedisSessionStorage(redisPool)) {
             serializer = JacksonSerializer(UserSession::class.java)
         }
     }
