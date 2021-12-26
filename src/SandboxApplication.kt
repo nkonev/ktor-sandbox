@@ -44,15 +44,15 @@ fun Application.module() {
     val env = environment.config.propertyOrNull("ktor.custom")?.getString()
     log.info("Got custom variable $env")
     install(DIFeature) {
-        val cleseableScope = scope as NoScope
-        bind<NoScope> { singleton { cleseableScope } }
+        val closeableScope = scope as NoScope
+        bind<NoScope> { singleton { closeableScope } }
 
         bind<Random> { singleton { SecureRandom() } }
 
         bind<MongoClient> { singleton { KMongo.createClient("mongodb://localhost:27027") }}
         bind<MongoDatabase> { singleton { this.instance<MongoClient>().getDatabase("test") } }
         bind<MongoCollection<Jedi>> { singleton { this.instance<MongoDatabase>().getCollection<Jedi>() } }
-        bind<JedisPool> { scoped(cleseableScope).singleton {
+        bind<JedisPool> { scoped(closeableScope).singleton {
             val jedisPoolConfig: GenericObjectPoolConfig<Jedis> = GenericObjectPoolConfig<Jedis>()
             // TODO timeouts
 
